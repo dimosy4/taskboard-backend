@@ -1,0 +1,18 @@
+{
+  "name": "student/taskboard-backend",
+  "description": "PHP TaskBoard backend",
+  "type": "project",
+  "require": {
+    "php": "^8.2",
+    "ext-pdo": "*",
+    "ext-openssl": "*",
+    "illuminate/database": "^11.0",
+    "illuminate/events": "^11.0",
+    "monolog/monolog": "^3.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  }
+}
