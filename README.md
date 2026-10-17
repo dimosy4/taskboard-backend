@@ -1,53 +1,133 @@
-# TaskBoard — PHP backend practical work
+# TaskBoard — PHP Backend
 
-A minimal backend for a Trello-style task board. PHP 8.2+, PostgreSQL, Composer, Eloquent ORM, Monolog, migrations, AES-256-GCM encrypted static config.
+Учебное веб-приложение для управления задачами по принципу Trello. Проект разработан на PHP с использованием PostgreSQL, Eloquent ORM и Monolog. Реализованы миграции базы данных, логирование HTTP-запросов и статическая конфигурация с шифрованием.
 
-## Requirements
-- PHP 8.2+ with pdo_pgsql and openssl
-- Composer
-- PostgreSQL 14+
+## Используемые технологии
 
-## Setup (Windows PowerShell)
-1. Create PostgreSQL database `taskboard` (using pgAdmin or `createdb -U postgres taskboard`).
-2. Run `composer install`.
-3. Run `Copy-Item .env.example .env`.
-4. Generate a key: `php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"` and paste it into `APP_KEY` in `.env`.
-5. Edit `DB_*` values in `.env`.
-6. Run `php bin/migrate.php` (creates all four domain tables plus migration tracking).
-7. Run `php bin/seed.php` (inserts demo records through Eloquent).
-8. Run `php -S localhost:8000 -t public`.
-9. Open http://localhost:8000/boards or http://localhost:8000/users.
-10. Inspect `storage/logs/http.log` for method, path, status and response body.
+- **PHP 8.2+** — серверная логика приложения.
+- **PostgreSQL** — хранение данных.
+- **Eloquent ORM** — работа с базой данных через PHP-модели.
+- **Monolog** — логирование запросов и ответов.
+- **Composer** — управление зависимостями.
+- **AES-256-GCM** — шифрование конфигурационных значений.
 
-## Migrations
-- Apply: `php bin/migrate.php`
-- Rollback (DROPS tables and their data): `php bin/migrate.php --rollback`
+## Установка и запуск
 
-## Encrypted static config
-- Generate encrypted value: `php bin/encrypt.php "my-secret"`.
-- Paste the resulting `enc:...` string into `config/app.php`, for example `'api_token' => 'enc:...'`.
-- Read in PHP: `\App\Support\Config::get('api_token')`.
-- `APP_KEY` stays in `.env` and **must never be committed**. Preserve your key securely; losing it makes encrypted values unreadable.
-- Do not commit secrets in plaintext or log request authorization credentials.
+Необходимы PHP, Composer и PostgreSQL.
 
-## GitHub publication
-```bash
-git init
-git add .
-git commit -m "Initial backend: Eloquent migrations Monolog config"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/taskboard-backend.git
-git push -u origin main
+Установить зависимости:
+
+```powershell
+composer install
 ```
-Create an **empty public** repository named `taskboard-backend` in GitHub before running the last two commands. The repository is not published until you do this.
 
-## Architecture
-HTTP request -> public/index.php -> Eloquent models -> PostgreSQL; Monolog records requests and responses; Config reads static settings and decrypts encrypted values; migration CLI manages schema.
+Создать базу данных `taskboard` в PostgreSQL.
 
-## Tables
-- `users` (user_id PK, unique email, password_hash, name, timestamps)
-- `boards` (board_id PK, owner_user_id FK, title, is_public, timestamps)
-- `board_columns` (column_id PK, board_id FK, ordinal_position, title, color)
-- `cards` (card_id PK, board_id FK, column_id FK, sort_index, title, content, color, is_archived, timestamps)
+Создать `.env` из шаблона:
 
-This is a **backend skeleton**, not a finished user-authentication or CRUD application. For public deployment, configure authentication, access control, HTTPS and log retention.
+```powershell
+Copy-Item .env.example .env
+```
+
+Указать параметры PostgreSQL в `.env` и сгенерировать ключ `APP_KEY`:
+
+```powershell
+php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"
+```
+
+Применить миграции и добавить тестовые данные:
+
+```powershell
+php bin/migrate.php
+php bin/seed.php
+```
+
+Запустить приложение:
+
+```powershell
+php -S localhost:8000 -t public
+```
+
+Доступные маршруты:
+
+- `http://localhost:8000/health` — проверка работы приложения.
+- `http://localhost:8000/users` — список пользователей.
+- `http://localhost:8000/boards` — список досок.
+
+## Eloquent ORM и миграции
+
+Eloquent используется для взаимодействия PHP с PostgreSQL. Основные модели находятся в `app/Models/`.
+
+Миграции создают структуру базы данных и управляются скриптом `bin/migrate.php`.
+
+Для отката:
+
+```powershell
+php bin/migrate.php --rollback
+```
+
+**Внимание:** откат удаляет таблицы и их данные.
+
+## Структура базы данных
+
+Приложение содержит четыре основные таблицы:
+
+- **users** — пользователи, email, хеши паролей.
+- **boards** — доски задач и их владельцы.
+- **board_columns** — колонки внутри досок.
+- **cards** — карточки задач, их описание, статус и порядок.
+
+Таблицы связаны внешними ключами. Дополнительно используется служебная таблица `migrations`.
+
+## Логирование Monolog
+
+Monolog записывает каждый обработанный HTTP-запрос, его метод, адрес, статус и тело ответа.
+
+Файл логов:
+
+```text
+storage/logs/http.log
+```
+
+Это позволяет контролировать работу приложения и выявлять ошибки.
+
+## Конфигурация и шифрование
+
+Настройки приложения находятся в `config/app.php`, а секретный ключ — в `.env`.
+
+Для шифрования применяется алгоритм **AES-256-GCM**.
+
+Зашифровать значение:
+
+```powershell
+php bin/encrypt.php "my-secret"
+```
+
+Полученное значение `enc:...` можно добавить в конфигурацию.
+
+Для чтения и расшифровки используется:
+
+```php
+\App\Support\Config::get('secret');
+```
+
+## Структура проекта
+
+```text
+app/Models/             — модели Eloquent
+app/Support/Config.php  — конфигурация и шифрование
+bin/                    — миграции, тестовые данные, шифрование
+bootstrap/              — инициализация приложения
+config/                 — настройки
+database/migrations/    — миграции PostgreSQL
+public/index.php        — обработка HTTP-запросов
+storage/logs/           — журналы Monolog
+composer.json           — зависимости проекта
+.env.example            — шаблон настроек
+```
+
+## Результат
+
+Реализован PHP Backend с подключением PostgreSQL через Eloquent ORM, системой миграций, логированием HTTP-запросов и ответов через Monolog, а также статическим конфигом с поддержкой зашифрованных значений.
+
+Проект представляет собой backend-основу приложения и может быть расширен авторизацией и полноценным управлением задачами.
